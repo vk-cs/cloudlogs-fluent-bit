@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package vk.cloud.logging.v1.api;
+
+import "google/protobuf/timestamp.proto";
+import "validate/validate.proto";
+
+option go_package=".;gen";
+
+service LogService {
+  rpc Write (WriteRequest) returns (WriteResponse);
+}
+
+// Also needs 'token' field in metadata
+message WriteRequest {
+    string service_id = 1 [(validate.rules).string = {in: ["default", "containers", "databases"]}];
+    string group_id = 2 [(validate.rules).string = {ignore_empty: true, max_bytes: 84, pattern: "[a-zA-Z0-9-_]+"}];
+    string stream_id = 3 [(validate.rules).string = {ignore_empty: true, max_bytes: 84, pattern: "[a-zA-Z0-9-_]+"}];
+    repeated LogEntry entries = 4 [(validate.rules).repeated = {min_items: 1, max_items: 100}];
+    bool internal = 5;
+}
+
+message WriteResponse {
+  // Reserved due to removing obsolete Status field
+  reserved 1;
+}
+
+message LogEntry {
+  enum Level {
+    none = 0;
+    debug = 1;
+    info = 2;
+    warn = 3;
+    error = 4;
+    fatal = 5;
+  }
+
+  google.protobuf.Timestamp timestamp = 1 [(validate.rules).timestamp = {
+    within: {seconds: 28800}
+  }];
+  Level level = 2 [(validate.rules).enum = {defined_only: true, not_in: [0]}];
+  string message = 3 [(validate.rules).string.max_bytes = 65536];
+  string json_payload = 4 [(validate.rules).string = {ignore_empty: true, max_bytes: 65536}];
+}
