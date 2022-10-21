@@ -121,7 +121,6 @@ func flush(instance *vkcloudlogs.VKCloudLogs, data unsafe.Pointer, length int, f
 
 //export FLBPluginExit
 func FLBPluginExit() int {
-	// TODO need to close grpc connection?
 	return fluent.FLB_OK
 }
 

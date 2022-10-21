@@ -1,6 +1,6 @@
 # fluent-bit vkcloudlogs output plugin
 
-This plugin works with fluent-bit's go plugin interface. You can use fluent-bit vkcloudlogs to ship logs into vk cloudlogging service.
+This plugin works with fluent-bit's go plugin interface. You can use fluent-bit vkcloudlogs to ship logs into CloudLogging service.
 
 # Usage
 Install Fluent Bit, i.e. https://docs.fluentbit.io/manual/installation/linux/ubuntu
@@ -67,6 +67,7 @@ $ make
 
 ## Useful links
 
+* [CloudLogging documentation](https://mcs.mail.ru/docs/additionals/logging#)
 * [Install FluentBit on Ubuntu](https://docs.fluentbit.io/manual/installation/linux/ubuntu)
 * [fluent-bit-go](https://github.com/fluent/fluent-bit-go)
 * [FluentBit GO plugin guide](https://docs.fluentbit.io/manual/development/golang-output-plugins)

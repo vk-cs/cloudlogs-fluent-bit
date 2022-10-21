@@ -23,18 +23,6 @@ func TestRegister(t *testing.T) {
 	assert.Equal(t, 0, resultCode)
 }
 
-//func TestInit(t *testing.T) {
-//	data := output.FLBOutPlugin{}
-//	plugin := unsafe.Pointer(&data)
-//	resultCode := FLBPluginInit(plugin)
-//	assert.Equal(t, output.FLB_OK, resultCode)
-//}
-
-//func TestFlushCtx(t *testing.T) {
-//	resultCode := main.FLBPluginFlushCtx(ctx, data, length, tag)
-//	assert.Equal(t, output.FLB_OK, resultCode)
-//}
-
 func TestFlush(t *testing.T) {
 	// see https://github.com/fluent/fluent-bit-go/blob/master/output/decoder_test.go#L27
 	dummyRecord := [29]byte{0x92, /* fix array 2 */
