@@ -484,6 +484,12 @@ func toString(raw interface{}) string {
 		return typed
 	case []byte:
 		return string(typed)
+	case [][]byte:
+		strs := make([]string, 0, len(typed))
+		for _, k := range typed {
+			strs = append(strs, toString(k))
+		}
+		return toString(strs)
 	default:
 		return fmt.Sprintf("%v", typed)
 	}
