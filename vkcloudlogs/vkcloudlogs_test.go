@@ -350,6 +350,20 @@ func TestParse(t *testing.T) {
 			expectedLevel:   gen.LogEntry_info,
 		},
 		{
+			name:            "message as byte array",
+			ts:              fluent.FLBTime{Time: now},
+			record:          map[interface{}]interface{}{"message": [][]byte{[]byte("hello"), []byte("world")}},
+			expectedLevel:   gen.LogEntry_info,
+			expectedMessage: "[hello world]",
+		},
+		{
+			name:            "custom as byte array",
+			ts:              fluent.FLBTime{Time: now},
+			record:          map[interface{}]interface{}{"custom": [][]byte{[]byte("hello"), []byte("world")}},
+			expectedLevel:   gen.LogEntry_info,
+			expectedPayload: `{"custom":"[hello world]"}`,
+		},
+		{
 			name:          "entry log level override",
 			cfgOverride:   VKCloudLogsConfig{DefaultLevel: "DEbug"},
 			expectedLevel: gen.LogEntry_debug,
