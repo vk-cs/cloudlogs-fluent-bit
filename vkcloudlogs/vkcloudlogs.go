@@ -52,7 +52,7 @@ const (
 	defaultServiceId  = "default"
 )
 
-type VKCloudLogsConfig struct {
+type Config struct {
 	// Auth
 	IdentityEndpoint string
 	KeyFile          string
@@ -85,31 +85,31 @@ type Tag struct {
 	GroupID  string
 }
 
-func (cfg *VKCloudLogsConfig) validate(logger *zap.SugaredLogger) (err error) {
+func (cfg *Config) validate() (err error) {
 	if cfg.IdentityEndpoint == "" {
-		return errors.New(`Require config "auth_url"`)
+		return errors.New(`require config "auth_url"`)
 	}
 	if cfg.ProjectID == "" {
-		return errors.New(`Require config "project_id"`)
+		return errors.New(`require config "project_id"`)
 	}
 	if cfg.ServerHostPort == "" {
-		return errors.New(`Require config "server_host_port"`)
+		return errors.New(`require config "server_host_port"`)
 	}
 	if _, err := url.ParseRequestURI(cfg.ServerHostPort); err != nil {
-		return fmt.Errorf(`Invalid url "server_host_port": %q`, cfg.ServerHostPort)
+		return fmt.Errorf(`invalid url "server_host_port": %q`, cfg.ServerHostPort)
 	}
 	if _, err := url.ParseRequestURI(cfg.IdentityEndpoint); err != nil {
-		return fmt.Errorf(`Invalid url "auth_url": %q`, cfg.IdentityEndpoint)
+		return fmt.Errorf(`invalid url "auth_url": %q`, cfg.IdentityEndpoint)
 	}
 
 	if cfg.KeyFile == "" && cfg.Password == "" {
-		return errors.New(`Require config "key_file" or "password"`)
+		return errors.New(`require config "key_file" or "password"`)
 	}
 
 	if cfg.InternalRaw != "" {
 		internal, err := strconv.ParseBool(cfg.InternalRaw)
 		if err != nil {
-			return errors.New(`Invalid config "internal"`)
+			return errors.New(`invalid config "internal"`)
 		}
 		cfg.Internal = internal
 	}
@@ -126,7 +126,7 @@ func (cfg *VKCloudLogsConfig) validate(logger *zap.SugaredLogger) (err error) {
 	checkCollision := func(key, keyName string) error {
 		if key != "" {
 			if v, ok := keyOverrides[key]; ok {
-				return fmt.Errorf(`Same key for %q and %q`, keyName, v)
+				return fmt.Errorf(`same key for %q and %q`, keyName, v)
 			}
 			keyOverrides[key] = keyName
 		}
@@ -156,46 +156,46 @@ func (cfg *VKCloudLogsConfig) validate(logger *zap.SugaredLogger) (err error) {
 
 	cfg.DefaultLevel = cleanKey(cfg.DefaultLevel, defaultLogLevel)
 	if _, ok := gen.LogEntry_Level_value[cfg.DefaultLevel]; !ok {
-		return errors.New(`Incorrect "default_config" value`)
+		return errors.New(`incorrect "default_config" value`)
 	}
 
 	cfg.ServiceID = cleanKey(cfg.ServiceID, defaultServiceId)
 
 	groupOk := tagRegexp.MatchString(cfg.GroupID)
 	if len(cfg.GroupID) > tagLength || !groupOk {
-		return errors.New(`Config "group_id" too long or have invalid characters`)
+		return errors.New(`config "group_id" too long or have invalid characters`)
 	}
 	streamOk := tagRegexp.MatchString(cfg.StreamID)
 	if len(cfg.StreamID) > tagLength || !streamOk {
-		return errors.New(`Config "stream_id" too long or have invalid characters`)
+		return errors.New(`config "stream_id" too long or have invalid characters`)
 	}
 
 	if cfg.DefaultPayload != "" {
-		err := json.Unmarshal([]byte(cfg.DefaultPayload), &cfg.PayloadTemplate)
+		err = json.Unmarshal([]byte(cfg.DefaultPayload), &cfg.PayloadTemplate)
 		if err != nil || len(cfg.PayloadTemplate) == 0 {
-			return errors.New(`Config "default_payload" must be valid json`)
+			return errors.New(`config "default_payload" must be valid json`)
 		}
 	}
 
 	return nil
 }
 
-func (cfg *VKCloudLogsConfig) validateAuth() (authOpts *tokens.AuthOptions, err error) {
+func (cfg *Config) validateAuth() (authOpts *tokens.AuthOptions, err error) {
 
 	if cfg.KeyFile != "" {
 		b, err := os.ReadFile(cfg.KeyFile)
 		if err != nil {
-			return nil, fmt.Errorf(`Cannot read file %q error %v`, cfg.KeyFile, err)
+			return nil, fmt.Errorf(`cannot read file %q: %w`, cfg.KeyFile, err)
 		}
 		key := keyFile{}
 		if err := json.Unmarshal(b, &key); err != nil {
-			return nil, fmt.Errorf(`Cannot parse json %q error %v`, cfg.KeyFile, err)
+			return nil, fmt.Errorf(`cannot parse json %q: %w`, cfg.KeyFile, err)
 		}
 		if key.UserID == "" {
-			return nil, errors.New(`Require key_file "user_id"`)
+			return nil, errors.New(`require key_file "user_id"`)
 		}
 		if key.Password == "" {
-			return nil, errors.New(`Require key_file "password"`)
+			return nil, errors.New(`require key_file "password"`)
 		}
 		authOpts = &tokens.AuthOptions{
 			IdentityEndpoint: cfg.IdentityEndpoint,
@@ -222,7 +222,7 @@ func (cfg *VKCloudLogsConfig) validateAuth() (authOpts *tokens.AuthOptions, err 
 			AllowReauth:      false,
 		}
 	} else {
-		return nil, errors.New(`Require config "key_file", "user_id" or "user_name"`)
+		return nil, errors.New(`require config "key_file", "user_id" or "user_name"`)
 	}
 	return authOpts, nil
 }
@@ -232,14 +232,14 @@ type VKCloudLogs struct {
 	conn     *grpc.ClientConn
 	grpcUrl  string
 
-	Apiclient gen.LogServiceClient
+	ApiClient gen.LogServiceClient
 	Token     string
 	Logger    *zap.SugaredLogger
 
-	cfg *VKCloudLogsConfig
+	cfg *Config
 }
 
-func NewVKCloudLogs(cfg *VKCloudLogsConfig, buildVersion string) (*VKCloudLogs, error) {
+func NewVKCloudLogs(cfg *Config, buildVersion string) (*VKCloudLogs, error) {
 
 	logger := zap.New(zapcore.NewCore(
 		zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig()),
@@ -249,7 +249,7 @@ func NewVKCloudLogs(cfg *VKCloudLogsConfig, buildVersion string) (*VKCloudLogs, 
 
 	logger.Infof("Init %s", buildVersion)
 
-	err := cfg.validate(logger)
+	err := cfg.validate()
 	if err != nil {
 		logger.Error(err)
 		return nil, err
@@ -284,7 +284,7 @@ func NewVKCloudLogs(cfg *VKCloudLogsConfig, buildVersion string) (*VKCloudLogs, 
 	return &VKCloudLogs{
 		authOpts:  authOpts,
 		conn:      conn,
-		Apiclient: gen.NewLogServiceClient(conn),
+		ApiClient: gen.NewLogServiceClient(conn),
 		Logger:    logger,
 		cfg:       cfg,
 		grpcUrl:   cfg.ServerHostPort}, nil
@@ -301,7 +301,7 @@ func (p *VKCloudLogs) Init() (err error) {
 
 	if state != connectivity.Ready {
 		p.Logger.Errorf("Cannot connect to %s", p.grpcUrl)
-		return errors.New("Bad server")
+		return errors.New("bad server")
 	}
 
 	err = p.auth()
@@ -348,58 +348,81 @@ func (p *VKCloudLogs) auth() (err error) {
 	return
 }
 
-func (p *VKCloudLogs) Parse(ts interface{}, record map[interface{}]interface{}) (entry *gen.LogEntry, tag Tag) {
-	var (
-		timestamp time.Time
-		message   string
-		level     string
-		streamId  string
-		groupId   string
-	)
-
-	// parse timestamp
+func (p *VKCloudLogs) parseTime(ts interface{}) time.Time {
 	switch typed := ts.(type) {
 	case fluent.FLBTime:
-		timestamp = typed.Time
+		return typed.Time
 	case uint64:
-		timestamp = time.Unix(int64(typed), 0)
+		return time.Unix(int64(typed), 0)
 	default:
-		p.Logger.Warnf("time provided invalid %v, defaulting to now.", typed)
-		timestamp = time.Now()
+		p.Logger.Warnf("Time provided invalid %v, defaulting to now.", typed)
+		return time.Now()
+	}
+}
+
+func (p *VKCloudLogs) parseLevel(level string) gen.LogEntry_Level {
+	logLevel, ok := gen.LogEntry_Level_value[strings.ToLower(level)]
+	if !ok {
+		return gen.LogEntry_Level(gen.LogEntry_Level_value[p.cfg.DefaultLevel])
 	}
 
-	jsonPayload := make(map[string]interface{})
+	return gen.LogEntry_Level(logLevel)
+}
+
+func (p *VKCloudLogs) createPayload() map[string]interface{} {
+	payload := make(map[string]interface{})
 	for key, value := range p.cfg.PayloadTemplate {
-		jsonPayload[key] = value
+		payload[key] = value
 	}
+	return payload
+}
+
+func (p *VKCloudLogs) appendPayload(payload map[string]interface{}, key string, value interface{}) {
+	switch typedValue := value.(type) {
+	case map[string]interface{}:
+		payload[key] = typedValue
+	case []interface{}:
+		payload[key] = toStringSlice(typedValue)
+	default:
+		payload[key] = value
+	}
+}
+
+func (p *VKCloudLogs) Parse(ts interface{}, fluentRecord map[interface{}]interface{}) (entry *gen.LogEntry, tag Tag) {
+	var (
+		message    string
+		level      string
+		streamId   string
+		groupId    string
+		rawPayload []byte
+	)
+
+	timestamp := p.parseTime(ts)
+	record := toStringMap(fluentRecord)
+	payload := p.createPayload()
 
 	// parse record
-	for k, v := range record {
-		key, ok := k.(string)
-		if !ok {
-			continue
-		}
+	for key, value := range record {
 		switch strings.ToLower(key) {
 		case p.cfg.MessageKey:
-			message = toString(v)
+			message = toString(value)
 		case p.cfg.LevelKey:
-			level = toString(v)
+			level = toString(value)
 		case p.cfg.GroupIDKey:
-			groupId = toString(v)
+			groupId = toString(value)
 		case p.cfg.StreamIDKey:
-			streamId = toString(v)
+			streamId = toString(value)
 		default:
-			jsonPayload[key] = toString(v)
+			p.appendPayload(payload, key, value)
 		}
 	}
-	strJsonPayload := ""
-	if len(jsonPayload) > 0 {
-		b, _ := json.Marshal(jsonPayload)
-		strJsonPayload = string(b)
-	}
-	levelInt, ok := gen.LogEntry_Level_value[strings.ToLower(level)]
-	if !ok {
-		levelInt = gen.LogEntry_Level_value[p.cfg.DefaultLevel]
+
+	if len(payload) > 0 {
+		var err error
+		rawPayload, err = json.Marshal(payload)
+		if err != nil {
+			p.Logger.Warnf("Can't marshal payload: %v", err)
+		}
 	}
 
 	if streamId == "" {
@@ -413,10 +436,16 @@ func (p *VKCloudLogs) Parse(ts interface{}, record map[interface{}]interface{}) 
 	entry = &gen.LogEntry{
 		Timestamp:   timestamppb.New(timestamp),
 		Message:     message,
-		Level:       gen.LogEntry_Level(levelInt),
-		JsonPayload: strJsonPayload,
+		Level:       p.parseLevel(level),
+		JsonPayload: string(rawPayload),
 	}
+
 	return entry, Tag{GroupID: groupId, StreamID: streamId}
+}
+
+func (p *VKCloudLogs) authorizedContext(ctx context.Context) context.Context {
+	const authHeader = "X-Auth-Token"
+	return metadata.NewOutgoingContext(ctx, metadata.Pairs(authHeader, p.Token))
 }
 
 func (p *VKCloudLogs) Write(tag Tag, entries []*gen.LogEntry) int {
@@ -445,14 +474,12 @@ func (p *VKCloudLogs) Write(tag Tag, entries []*gen.LogEntry) int {
 				return fluent.FLB_ERROR
 			}
 		}
+
 		start := time.Now()
 		reqCtx, cancel := context.WithTimeout(context.Background(), writeTimeout)
-		defer cancel()
+		resp, err := p.ApiClient.Write(p.authorizedContext(reqCtx), req)
+		cancel()
 
-		resp, err := p.Apiclient.Write(
-			metadata.NewOutgoingContext(reqCtx, metadata.Pairs("X-Auth-Token", p.Token)),
-			req,
-		)
 		p.Logger.Debugf("WriterAPI response %v in %v", resp, time.Since(start))
 		if err != nil {
 			if requestStatus, ok := status.FromError(err); ok {
@@ -478,18 +505,53 @@ func (p *VKCloudLogs) Write(tag Tag, entries []*gen.LogEntry) int {
 	return fluent.FLB_OK
 }
 
+func toStringMap(record map[interface{}]interface{}) map[string]interface{} {
+	m := make(map[string]interface{})
+
+	for k, v := range record {
+		key, ok := k.(string)
+		if !ok {
+			continue
+		}
+		switch t := v.(type) {
+		case []byte:
+			m[key] = string(t)
+		case map[interface{}]interface{}:
+			m[key] = toStringMap(t)
+		case []interface{}:
+			m[key] = toStringSlice(t)
+		default:
+			m[key] = v
+		}
+	}
+
+	return m
+}
+
+func toStringSlice(slice []interface{}) []interface{} {
+	var s []interface{}
+
+	for _, v := range slice {
+		switch t := v.(type) {
+		case []byte:
+			s = append(s, string(t))
+		case map[interface{}]interface{}:
+			s = append(s, toStringMap(t))
+		case []interface{}:
+			s = append(s, toStringSlice(t))
+		default:
+			s = append(s, t)
+		}
+	}
+	return s
+}
+
 func toString(raw interface{}) string {
 	switch typed := raw.(type) {
 	case string:
 		return typed
 	case []byte:
 		return string(typed)
-	case [][]byte:
-		strs := make([]string, 0, len(typed))
-		for _, k := range typed {
-			strs = append(strs, toString(k))
-		}
-		return toString(strs)
 	default:
 		return fmt.Sprintf("%v", typed)
 	}
