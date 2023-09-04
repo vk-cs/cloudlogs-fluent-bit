@@ -1,10 +1,11 @@
 package main
 
 import (
-	"C"
 	"fmt"
 	"runtime"
 	"unsafe"
+
+	"C"
 
 	"github.com/vk-cs/cloudlogs-fluent-bit/gen"
 	"github.com/vk-cs/cloudlogs-fluent-bit/vkcloudlogs"
@@ -38,7 +39,7 @@ func FLBPluginInit(plugin unsafe.Pointer) int {
 		return
 	}
 
-	cfg := vkcloudlogs.VKCloudLogsConfig{
+	cfg := vkcloudlogs.Config{
 		// Auth
 		IdentityEndpoint: getCompatKey("auth_url", "auth-url"),
 		KeyFile:          fluent.FLBPluginConfigKey(plugin, "key_file"),
@@ -91,7 +92,7 @@ func flush(instance *vkcloudlogs.VKCloudLogs, data unsafe.Pointer, length int, f
 		decoderOk   = 0
 		decoderDone = -1
 	)
-	decoder := fluent.NewDecoder(data, int(length))
+	decoder := fluent.NewDecoder(data, length)
 
 	for {
 		// Extract data from MessagePack

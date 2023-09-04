@@ -34,7 +34,7 @@ func TestFlush(t *testing.T) {
 		0x01, /* fix int 1 */
 	}
 
-	cfg := vkcloudlogs.VKCloudLogsConfig{
+	cfg := vkcloudlogs.Config{
 		IdentityEndpoint: "http://aurl-url",
 		UserID:           "user-id",
 		Password:         "password",
@@ -44,7 +44,7 @@ func TestFlush(t *testing.T) {
 	plugin, err := vkcloudlogs.NewVKCloudLogs(&cfg, "test_version")
 	assert.NoError(t, err)
 	writerMock := vkcloudlogs.LogServiceClientMock{}
-	plugin.Apiclient = &writerMock
+	plugin.ApiClient = &writerMock
 	plugin.Token = "token"
 
 	resultCode := flush(plugin, unsafe.Pointer(&dummyRecord), len(dummyRecord), "tag")
