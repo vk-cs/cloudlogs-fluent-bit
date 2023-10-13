@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/envoyproxy/protoc-gen-validate v0.1.0
-	github.com/fluent/fluent-bit-go v0.0.0-20220311094233-780004bf5562
+	github.com/fluent/fluent-bit-go v0.0.0-20230731091245-a7a013e2473c
 	github.com/gophercloud/gophercloud v0.25.0
 	github.com/stretchr/testify v1.8.0
 	go.uber.org/zap v1.21.0
