@@ -82,16 +82,6 @@ func TestConfig(t *testing.T) {
 			},
 		},
 		{
-			name: "bad server url",
-			cfg: Config{
-				IdentityEndpoint: "http://aurl_url",
-				UserID:           "user_id",
-				Password:         "password",
-				ProjectID:        "project_id",
-				ServerHostPort:   "broken",
-			},
-		},
-		{
 			name:    "ok auth by user id",
 			noError: true,
 			cfg: Config{

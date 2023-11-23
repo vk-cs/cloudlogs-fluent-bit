@@ -95,9 +95,6 @@ func (cfg *Config) validate() (err error) {
 	if cfg.ServerHostPort == "" {
 		return errors.New(`require config "server_host_port"`)
 	}
-	if _, err := url.ParseRequestURI(cfg.ServerHostPort); err != nil {
-		return fmt.Errorf(`invalid url "server_host_port": %q`, cfg.ServerHostPort)
-	}
 	if _, err := url.ParseRequestURI(cfg.IdentityEndpoint); err != nil {
 		return fmt.Errorf(`invalid url "auth_url": %q`, cfg.IdentityEndpoint)
 	}
